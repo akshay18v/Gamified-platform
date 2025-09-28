@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoLearn SIH</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="flex flex-col min-h-screen justify-center items-center">
+  
+  <!-- Header -->
+  <header class="text-center mb-12">
+    <h1 class="text-5xl font-bold text-green-800">EcoLearn SIH</h1>
+    <p class="mt-2 text-lg text-green-700">Gamified Environmental Education for Students & Teachers</p>
+  </header>
+
+  <!-- User Selection -->
+  <main class="flex flex-col sm:flex-row gap-8">
+    
+    <!-- Student Card -->
+    <div class="card bg-white p-10 rounded-2xl shadow-lg w-72 text-center hover:bg-green-50 cursor-pointer" id="studentCard">
+      <img src="https://img.icons8.com/fluency/96/000000/student-male.png" alt="Student Icon" class="mx-auto mb-4">
+      <h2 class="text-2xl font-semibold text-green-700 mb-2">Student</h2>
+      <p class="text-gray-600">Login or Register as a student to play eco-games and track your progress.</p>
+      <button class="mt-4 px-6 py-2 bg-green-600 text-white rounded-full hover:bg-green-700">Go</button>
+    </div>
+
+    <!-- Teacher Card -->
+    <div class="card bg-white p-10 rounded-2xl shadow-lg w-72 text-center hover:bg-yellow-50 cursor-pointer" id="teacherCard">
+      <img src="https://img.icons8.com/fluency/96/000000/teacher.png" alt="Teacher Icon" class="mx-auto mb-4">
+      <h2 class="text-2xl font-semibold text-yellow-700 mb-2">Teacher</h2>
+      <p class="text-gray-600">Login or Register as a teacher to manage your class and view student rankings.</p>
+      <button class="mt-4 px-6 py-2 bg-yellow-600 text-white rounded-full hover:bg-yellow-700">Go</button>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-16 text-center text-green-800">
+    <p>© 2025 EcoLearn SIH. All rights reserved.</p>
+  </footer>
+
+  <!-- JS -->
+  <script src="js/script.js"></script>
+
+</body>
+</html>

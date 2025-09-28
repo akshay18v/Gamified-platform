@@ -1,0 +1,11 @@
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+input:focus {
+  outline: none;
+}
+
+button {
+  transition: all 0.2s ease-in-out;
+}
