@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌎 Eco-Sort Adventure! ♻️</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configure Tailwind to use Inter font -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0fdf4; /* Light mint background */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            position: relative; /* For the absolute canvas */
+        }
+        
+        /* Custom styles for animations and aesthetics */
+        .game-item {
+            cursor: grab;
+            transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s, scale 0.2s, border-color 0.1s;
+            touch-action: none; /* Crucial for mobile dragging */
+        }
+
+        .game-item:active {
+            transform: scale(1.1) rotate(2deg);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+        
+
+        .bin {
+            transition: background-color 0.3s, transform 0.2s;
+            min-height: 150px; /* Increased size */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15); /* Stronger shadow */
+        }
+        
+        /* Responsive bin sizing */
+        @media (min-width: 640px) {
+            .bin {
+                min-height: 200px;
+            }
+        }
+
+        .bin:hover {
+            transform: translateY(-6px); /* More prominent hover effect */
+            box-shadow: 0 12px 24px rgba(0,0,0,0.3);
+        }
+
+        .drag-over {
+            transform: scale(1.05);
+            border: 6px dashed #f59e0b !important; /* Orange dashed border */
+        }
+
+        /* UPDATED: Reduced padding and font size for a smaller message */
+        .feedback-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 200;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            padding: 1rem 2rem; /* Reduced padding */
+            border-radius: 9999px;
+            font-weight: 900;
+            font-size: 1.5rem; /* Reduced text size */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4); /* Slightly softer shadow */
+            pointer-events: none;
+        }
+        
+        .mobile-bin-button {
+            transition: transform 0.1s;
+        }
+        .mobile-bin-button:active {
+            transform: scale(0.95);
+        }
+        
+        /* Style for the background canvas */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            opacity: 0.6; /* Subtly blend with background color */
+        }
+        
+        /* Ensure game content is layered above the canvas */
+        #game-content {
+            position: relative;
+            z-index: 10;
+        }
+        
+        /* --- Confetti Styles (FIXED) --- */
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 1;
+            }
+        }
+
+        .confetti {
+            position: fixed; /* Use fixed so it covers the whole viewport */
+            width: 8px;
+            height: 16px; 
+            z-index: 300; /* Above the modal */
+            animation: confetti-fall 3s ease-in forwards;
+        }
+        /* --- End Confetti Styles --- */
+
+    </style>
+</head>
+<body class="p-4 sm:p-8 w-full min-h-screen">
+    
+    <!-- LIVE ANIMATED BACKGROUND CANVAS -->
+    <canvas id="bg-canvas"></canvas>
+
+    <div id="game-content" class="w-full">
+        <main class="max-w-6xl mx-auto w-full"> <!-- Increased max-width for larger layout -->
+            <!-- Header -->
+            <header class="text-center mb-10 w-full">
+                <h1 class="text-4xl sm:text-6xl font-black text-[#059669] drop-shadow-lg">
+                    Eco-Sort Adventure! ♻️
+                </h1>
+                <p class="text-xl sm:text-2xl font-medium text-[#10b981] mt-3">
+                    Drag each item to the correct bin!!
+                </p>
+            </header>
+    
+            <!-- Status Board -->
+            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl mb-8 border-b-8 border-[#059669] flex justify-between items-center flex-wrap gap-4">
+                <p class="text-lg sm:text-2xl font-semibold text-gray-700">Level: <span id="level-count" class="text-[#f59e0b] font-extrabold">1</span></p>
+                <p class="text-lg sm:text-2xl font-semibold text-gray-700">Score: <span id="score-count" class="text-[#059669] font-extrabold">0</span></p>
+                <p class="text-lg sm:text-2xl font-semibold text-gray-700">Items Left: <span id="items-remaining" class="text-[#dc2626] font-extrabold">0</span></p>
+            </div>
+            
+            <!-- Game Area -->
+            <div id="game-container" class="transition-opacity duration-500">
+                <!-- Items to be sorted (Shelf) -->
+                <div id="item-shelf" class="bg-gray-100 p-6 sm:p-10 rounded-2xl shadow-inner mb-10 flex justify-center items-center flex-wrap gap-8 min-h-[200px] sm:min-h-[250px]">
+                    <p id="level-message" class="text-gray-500 text-center text-xl sm:text-2xl font-medium">Loading Level...</p>
+                </div>
+    
+                <!-- Bins -->
+                <div id="bins-container" class="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+                    <!-- Green Bin (Wet/Biodegradable) -->
+                    <div id="bin-wet" class="bin bg-[#10b981] text-white rounded-2xl shadow-xl" data-type="wet">
+                        <span class="text-6xl sm:text-7xl">🥬</span>
+                        <p class="font-extrabold text-xl sm:text-2xl mt-3">Wet Waste</p>
+                        <p class="text-md sm:text-lg">Biodegradable</p>
+                    </div>
+                    <!-- Blue Bin (Dry/Recyclable) -->
+                    <div id="bin-dry" class="bin bg-[#3b82f6] text-white rounded-2xl shadow-xl" data-type="dry">
+                        <span class="text-6xl sm:text-7xl">📰</span>
+                        <p class="font-extrabold text-xl sm:text-2xl mt-3">Dry Waste</p>
+                        <p class="text-md sm:text-lg">Recyclable</p>
+                    </div>
+                    <!-- Red/Black Bin (Sanitary/Reject) -->
+                    <div id="bin-reject" class="bin bg-[#ef4444] text-white rounded-2xl shadow-xl" data-type="reject">
+                        <span class="text-6xl sm:text-7xl">😷</span>
+                        <p class="font-extrabold text-xl sm:text-2xl mt-3">Reject Waste</p>
+                        <p class="text-md sm:text-lg">Sanitary/Hazardous</p>
+                    </div>
+                </div>
+    
+                <!-- Mobile Action Buttons (Hidden on desktop) -->
+                <div id="mobile-actions" class="mt-8 grid grid-cols-3 gap-4 md:hidden">
+                    <button data-type="wet" class="mobile-bin-button py-4 bg-[#10b981] text-white font-extrabold text-lg rounded-xl shadow-lg">WET (🥬)</button>
+                    <button data-type="dry" class="mobile-bin-button py-4 bg-[#3b82f6] text-white font-extrabold text-lg rounded-xl shadow-lg">DRY (📰)</button>
+                    <button data-type="reject" class="mobile-bin-button py-4 bg-[#ef4444] text-white font-extrabold text-lg rounded-xl shadow-lg">REJECT (😷)</button>
+                </div>
+            </div>
+    
+            <!-- Feedback Message -->
+            <div id="feedback-message" class="feedback-message"></div>
+    
+            <!-- Game Over Modal -->
+            <div id="game-over-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center p-4 transition-opacity duration-500 opacity-0 z-50">
+                <div class="bg-white p-8 rounded-3xl shadow-2xl text-center max-w-sm w-full transform transition-transform scale-95">
+                    <p class="text-7xl mb-6 animate-bounce">🏆</p>
+                    <h2 class="text-4xl font-black text-[#059669] mb-3">LEVEL COMPLETE!</h2>
+                    <p class="text-gray-700 text-2xl font-semibold mb-8">You earned <span id="level-score" class="text-[#f59e0b]"></span> points!</p>
+                    <button id="next-level-button" class="w-full py-4 bg-[#3b82f6] text-white text-xl font-bold rounded-xl shadow-md hover:bg-[#1e40af] transition transform hover:scale-105">
+                        Continue to Level <span id="next-level-number"></span>
+                    </button>
+                    <button id="restart-game-button" class="w-full py-2 mt-4 text-gray-600 font-medium hover:text-red-500">
+                        Restart Game
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript Game Logic and Background Animation -->
+    <script>
+        // --- Game Configuration ---
+        const GAME_LEVELS = [
+            // Level 1: Basics
+            [
+                { emoji: '🍎', type: 'wet', name: 'Apple Core' },
+                { emoji: '📰', type: 'dry', name: 'Newspaper' },
+                { emoji: '🔋', type: 'reject', name: 'Used Battery' },
+                { emoji: '🍌', type: 'wet', name: 'Banana Peel' },
+                { emoji: '📦', type: 'dry', name: 'Cardboard Box' },
+            ],
+            // Level 2: Intermediate
+            [
+                { emoji: '☕', type: 'wet', name: 'Tea Leaves' },
+                { emoji: '🧴', type: 'dry', name: 'Plastic Bottle (Clean)' },
+                { emoji: '🧪', type: 'reject', name: 'Medicine Bottle' },
+                { emoji: '🥚', type: 'wet', name: 'Egg Shells' },
+                { emoji: '💡', type: 'reject', name: 'CFL Bulb' },
+                { emoji: '🥫', type: 'dry', name: 'Tin Can' },
+            ],
+            // Level 3: Advanced
+            [
+                { emoji: '🍞', type: 'wet', name: 'Stale Bread' },
+                { emoji: '💉', type: 'reject', name: 'Syringe' },
+                { emoji: '🪑', type: 'dry', name: 'Broken Plastic Toy' },
+                { emoji: '🥩', type: 'wet', name: 'Raw Meat Scraps' },
+                { emoji: '🥛', type: 'dry', name: 'Milk Carton (Rinsed)' },
+                { emoji: '💄', type: 'reject', name: 'Old Lipstick' },
+                { emoji: '🍂', type: 'wet', name: 'Dead Leaves' },
+                { emoji: '💻', type: 'reject', name: 'Old Laptop (E-Waste)' },
+            ]
+        ];
+
+        // --- Game State ---
+        let currentLevel = 0;
+        let score = 0;
+        let itemsRemaining = 0;
+        let totalItems = 0;
+        let currentDragItem = null;
+        let isMobile = window.matchMedia("(max-width: 1024px)").matches;
+
+        // --- DOM Elements ---
+        const itemShelf = document.getElementById('item-shelf');
+        const scoreCountEl = document.getElementById('score-count');
+        const levelCountEl = document.getElementById('level-count');
+        const itemsRemainingEl = document.getElementById('items-remaining');
+        const levelMessageEl = document.getElementById('level-message');
+        const feedbackMessageEl = document.getElementById('feedback-message');
+        const gameOverModal = document.getElementById('game-over-modal');
+        const nextLevelButton = document.getElementById('next-level-button');
+        const restartGameButton = document.getElementById('restart-game-button');
+        const mobileActionButtons = document.getElementById('mobile-actions');
+        
+        // --- Utility Functions ---
+
+        /** Updates the scoreboard display */
+        function updateUI() {
+            scoreCountEl.textContent = score;
+            levelCountEl.textContent = currentLevel + 1;
+            itemsRemainingEl.textContent = itemsRemaining;
+        }
+
+        /** Shows floating feedback (Correct/Incorrect) */
+        function showFeedback(text, isCorrect) {
+            feedbackMessageEl.textContent = text;
+            feedbackMessageEl.classList.remove('bg-green-500', 'bg-red-500');
+            
+            if (isCorrect) {
+                feedbackMessageEl.classList.add('bg-green-500', 'text-white');
+            } else {
+                feedbackMessageEl.classList.add('bg-red-500', 'text-white');
+            }
+            
+            feedbackMessageEl.style.opacity = '1';
+            feedbackMessageEl.style.transform = 'translate(-50%, -50%) scale(1.1)';
+            
+            setTimeout(() => {
+                feedbackMessageEl.style.opacity = '0';
+                feedbackMessageEl.style.transform = 'translate(-50%, -50%) scale(1)';
+            }, 800);
+        }
+
+        /** Creates a random confetti effect for success */
+        function createConfetti() {
+            // List of colors for the confetti pieces
+            const colors = ['#ffcc00', '#10b981', '#3b82f6', '#ef4444', '#f59e0b']; 
+            
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                
+                // Random position just above the viewport
+                confetti.style.left = `${Math.random() * 100}vw`;
+                confetti.style.top = `${-20}px`;
+                
+                // Random size (for visual variation)
+                const size = Math.random() * 6 + 4; // 4px to 10px
+                confetti.style.width = `${size}px`;
+                confetti.style.height = `${size * 2}px`;
+
+                // Assign random color and animation delay
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDelay = `${Math.random() * 0.5}s`;
+                // REMOVED: confetti.style.opacity = '1'; // Not needed, let the CSS animation handle opacity start
+                
+                document.body.appendChild(confetti);
+                
+                // Remove confetti after animation finishes (3 seconds)
+                setTimeout(() => confetti.remove(), 3000);
+            }
+        }
+        
+        // --- Background Animation Logic (Canvas) ---
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        const numParticles = 30;
+        const bg_colors = ['rgba(16, 185, 129, 0.4)', 'rgba(59, 130, 246, 0.4)']; // Green and Blue shades
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.radius = Math.random() * 10 + 5;
+                this.color = bg_colors[Math.floor(Math.random() * bg_colors.length)];
+                this.speedX = Math.random() * 0.5 - 0.25;
+                this.speedY = Math.random() * 0.5 - 0.25;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+
+                // Wrap particles around the screen
+                if (this.x > canvas.width + this.radius) this.x = -this.radius;
+                if (this.x < -this.radius) this.x = canvas.width + this.radius;
+                if (this.y > canvas.height + this.radius) this.y = -this.radius;
+                if (this.y < -this.radius) this.y = canvas.height + this.radius;
+
+                this.draw();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < numParticles; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function animateBg() {
+            requestAnimationFrame(animateBg);
+            // Clear the canvas with a slight fade effect to create trails
+            ctx.fillStyle = 'rgba(240, 253, 244, 0.2)'; // Fading mint color
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(particle => particle.update());
+        }
+
+        // --- Game Flow Functions ---
+
+        /** Loads the current game level items */
+        function loadLevel() {
+            if (currentLevel >= GAME_LEVELS.length) {
+                showFinalWin();
+                return;
+            }
+
+            const items = GAME_LEVELS[currentLevel];
+            totalItems = items.length;
+            itemsRemaining = items.length;
+            
+            itemShelf.innerHTML = '';
+            levelMessageEl.style.display = 'none';
+
+            items.forEach((item, index) => {
+                const itemEl = document.createElement('div');
+                itemEl.id = `item-${index}`;
+                itemEl.classList.add(
+                    'game-item', 'p-4', 'sm:p-6', 'bg-white', 'rounded-2xl', 'shadow-lg', 'text-center', 
+                    'border-4', 'border-gray-200', 'hover:border-[#f59e0b]', 'transition-all'
+                );
+                itemEl.draggable = !isMobile;
+                itemEl.dataset.correctType = item.type;
+                itemEl.dataset.itemName = item.name;
+                
+                // Use larger emoji size for the larger layout
+                itemEl.innerHTML = `
+                    <span class="text-5xl sm:text-6xl block">${item.emoji}</span>
+                    <span class="text-sm sm:text-base font-semibold text-gray-700 mt-2">${item.name}</span>
+                `;
+
+                // Setup drag/touch events
+                if (!isMobile) {
+                    itemEl.addEventListener('dragstart', handleDragStart);
+                } else {
+                    itemEl.addEventListener('touchstart', handleTouchStart);
+                }
+                
+                itemShelf.appendChild(itemEl);
+            });
+            
+            updateUI();
+        }
+
+        /** Processes a successful or failed drop/sort action (One Chance Rule). */
+        function processDrop(itemEl, dropType) {
+            if (!itemEl || !itemEl.parentElement) return;
+
+            const correctType = itemEl.dataset.correctType;
+            const itemName = itemEl.dataset.itemName;
+            
+            // Decrement the count regardless of outcome (One Chance Rule)
+            itemsRemaining--;
+
+            if (dropType === correctType) {
+                // Correct Sort: Reward points
+                score += 10;
+                showFeedback(`+10: Success! ${itemName} is ${correctType} waste.`, true);
+            } else {
+                // Incorrect Sort: Deduct points
+                score = Math.max(0, score - 5); 
+                showFeedback(`-5: Wrong! ${itemName} is NOT ${dropType} waste.`, false);
+            }
+            
+            // Item Removal Animation
+            itemEl.classList.remove('border-yellow-500', 'border-4'); 
+            itemEl.classList.add('opacity-0', 'scale-50');
+            itemEl.style.pointerEvents = 'none';
+            
+            setTimeout(() => itemEl.remove(), 200);
+
+            updateUI();
+            
+            if (itemsRemaining === 0) {
+                showLevelComplete();
+            }
+        }
+
+        /** Shows the Level Complete modal */
+        function showLevelComplete() {
+            document.getElementById('game-container').style.opacity = '0.1';
+            gameOverModal.classList.remove('hidden');
+            document.getElementById('level-score').textContent = (totalItems * 10) + ' bonus';
+            document.getElementById('next-level-number').textContent = currentLevel + 2;
+            
+            // Use requestAnimationFrame to ensure the modal visibility transition happens before the opacity transition
+            requestAnimationFrame(() => {
+                gameOverModal.classList.add('opacity-100');
+                createConfetti(); // Create confetti exactly when the modal is made visible
+            });
+        }
+
+        /** Placeholder for a final win screen */
+        function showFinalWin() {
+             document.getElementById('game-container').style.opacity = '0.1';
+             gameOverModal.classList.remove('hidden');
+             document.getElementById('level-score').textContent = `Final Score: ${score}`;
+             document.getElementById('next-level-number').parentElement.textContent = 'You are an Eco-Sort Master!';
+             nextLevelButton.textContent = 'Play Again';
+             
+             requestAnimationFrame(() => {
+                gameOverModal.classList.add('opacity-100');
+                createConfetti();
+             });
+        }
+
+        // --- Event Handlers (Desktop: Drag & Drop) ---
+        function handleDragStart(e) {
+            currentDragItem = e.target;
+            e.dataTransfer.setData('text/plain', e.target.id);
+            e.target.classList.add('opacity-50');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            
+            if (currentDragItem) {
+                const dropType = e.currentTarget.dataset.type;
+                processDrop(currentDragItem, dropType);
+                currentDragItem.classList.remove('opacity-50');
+                currentDragItem = null;
+            }
+        }
+        
+        // --- Event Handlers (Mobile: Touch & Tap) ---
+        function handleTouchStart(e) {
+            document.querySelectorAll('.game-item').forEach(el => el.classList.remove('border-yellow-500', 'border-4'));
+            
+            currentDragItem = e.currentTarget;
+            currentDragItem.classList.add('border-yellow-500', 'border-4'); // Highlight selected item
+            
+            mobileActionButtons.classList.remove('hidden');
+        }
+
+        function handleMobileTap(e) {
+            if (!currentDragItem) {
+                showFeedback("Select an item first!", false);
+                return;
+            }
+
+            const dropType = e.currentTarget.dataset.type;
+            processDrop(currentDragItem, dropType);
+            
+            currentDragItem = null;
+            mobileActionButtons.classList.add('hidden');
+        }
+
+        // --- Event Listeners Initialization & Game Start ---
+
+        /** Resets the game state and starts over */
+        function restartGame(isFullRestart = true) {
+            if (isFullRestart) {
+                currentLevel = 0;
+                score = 0;
+            } else {
+                currentLevel++;
+            }
+            
+            itemsRemaining = 0;
+            totalItems = 0;
+            
+            document.getElementById('game-container').style.opacity = '1';
+            gameOverModal.classList.add('hidden');
+            gameOverModal.classList.remove('opacity-100');
+            mobileActionButtons.classList.add('hidden');
+            
+            loadLevel();
+        }
+
+
+        function setupListeners() {
+            // Re-check for mobile status on setup
+            isMobile = window.matchMedia("(max-width: 1024px)").matches;
+            
+            // Setup Drop Listeners on Bins (Desktop)
+            document.querySelectorAll('.bin').forEach(bin => {
+                // Ensure drag events are only active on non-mobile for standard D&D
+                if (!isMobile) {
+                    bin.addEventListener('dragover', handleDragOver);
+                    bin.addEventListener('dragleave', handleDragLeave);
+                    bin.addEventListener('drop', handleDrop);
+                }
+            });
+            
+            // Setup Mobile Tap Listeners
+            document.querySelectorAll('.mobile-bin-button').forEach(button => {
+                button.addEventListener('click', handleMobileTap);
+            });
+
+            // Setup Restart and Next Level Buttons
+            nextLevelButton.addEventListener('click', () => restartGame(false));
+            restartGameButton.addEventListener('click', () => restartGame(true));
+            
+            // Setup Canvas for Background Animation
+            resizeCanvas();
+            initParticles();
+            animateBg();
+            window.addEventListener('resize', resizeCanvas);
+
+            // Initial game load
+            loadLevel();
+        }
+
+        window.onload = setupListeners;
+
+    </script>
+</body>
+</html>
