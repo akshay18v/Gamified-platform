@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eco Heroes Quiz</title>
+    <style>
+        body {
+            box-sizing: border-box;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #F8F8F8;
+            min-height: 100vh;
+            color: #2E7D32;
+        }
+        
+        .game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #2E7D32, #4CAF50);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .score-board {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 10px;
+        }
+        
+        .score {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        .question-container {
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .question-number {
+            background: #E8F5E8;
+            color: #2E7D32;
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .scenario {
+            background: #F1F8E9;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border-left: 5px solid #4CAF50;
+        }
+        
+        .scenario-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .question {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #000000;
+        }
+        
+        .choices {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .choice-btn {
+            background: white;
+            border: 3px solid #4CAF50;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+        
+        .choice-btn:hover {
+            background: #E8F5E8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        .choice-btn.correct {
+            background: #4CAF50;
+            color: white;
+            border-color: #2E7D32;
+        }
+        
+        .choice-btn.incorrect {
+            background: #F44336;
+            color: white;
+            border-color: #D32F2F;
+        }
+        
+        .feedback {
+            background: #E8F5E8;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border-left: 5px solid #4CAF50;
+            display: none;
+        }
+        
+        .feedback.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .next-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: none;
+        }
+        
+        .next-btn:hover {
+            background: #2E7D32;
+            transform: scale(1.05);
+        }
+        
+        .next-btn.show {
+            display: inline-block;
+        }
+        
+        .final-score {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+        
+        .final-score.show {
+            display: block;
+        }
+        
+        .final-score h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #2E7D32;
+        }
+        
+        .eco-badge {
+            font-size: 4rem;
+            margin: 20px 0;
+        }
+        
+        .restart-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        
+        .restart-btn:hover {
+            background: #2E7D32;
+        }
+        
+        @media (max-width: 600px) {
+            .game-container {
+                margin: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .question-container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🌍 Eco Heroes Quiz 🌱</h1>
+            <div class="score-board">
+                <div class="score">Score: <span id="score">0</span></div>
+                <div class="score">Question: <span id="current-q">1</span> / <span id="total-q">8</span></div>
+            </div>
+        </div>
+        
+        <div class="question-container" id="quiz-container">
+            <div class="question-number">Question <span id="q-num">1</span></div>
+            
+            <div class="scenario">
+                <div class="scenario-text" id="scenario-text">
+                    You're brushing your teeth and notice the water is running while you brush. Your mom always tells you to save water.
+                </div>
+                <div class="question" id="question-text">
+                    What would you do?
+                </div>
+            </div>
+            
+            <div class="choices" id="choices-container">
+                <button class="choice-btn" onclick="selectAnswer(0)">
+                    🚿 Keep the water running - it's only for 2 minutes
+                </button>
+                <button class="choice-btn" onclick="selectAnswer(1)">
+                    💧 Turn off the tap while brushing and turn it back on to rinse
+                </button>
+            </div>
+            
+            <div class="feedback" id="feedback">
+                <strong>Great choice!</strong> Turning off the tap while brushing can save up to 8 gallons of water each time! Every drop counts in protecting our planet. 🌍
+            </div>
+            
+            <button class="next-btn" id="next-btn" onclick="nextQuestion()">
+                Next Question →
+            </button>
+        </div>
+        
+        <div class="final-score" id="final-score">
+            <h2>Quiz Complete!</h2>
+            <div class="eco-badge" id="badge">🌟</div>
+            <div id="final-message">You're an amazing Eco Hero!</div>
+            <div>Final Score: <span id="final-score-text">0</span> / 8</div>
+            <button class="restart-btn" onclick="restartQuiz()">Play Again 🔄</button>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                scenario: "You're brushing your teeth and notice the water is running while you brush. Your mom always tells you to save water.",
+                question: "What would you do?",
+                choices: [
+                    "🚿 Keep the water running - it's only for 2 minutes",
+                    "💧 Turn off the tap while brushing and turn it back on to rinse"
+                ],
+                correct: 1,
+                feedback: "Great choice! Turning off the tap while brushing can save up to 8 gallons of water each time! Every drop counts in protecting our planet. 🌍"
+            },
+            {
+                scenario: "You finish eating lunch at school and have an empty plastic water bottle, a banana peel, and a paper napkin to throw away.",
+                question: "What would you do?",
+                choices: [
+                    "🗑️ Throw everything in the regular trash bin",
+                    "♻️ Put the bottle in recycling, banana peel in compost, and napkin in trash"
+                ],
+                correct: 1,
+                feedback: "Perfect! Sorting waste properly helps reduce landfill waste and creates new products from recycled materials. You're helping create a circular economy! 🔄"
+            },
+            {
+                scenario: "It's a sunny day and you're leaving your room to go play outside. All the lights are still on in your room.",
+                question: "What would you do?",
+                choices: [
+                    "💡 Leave the lights on - you'll be back later anyway",
+                    "🔌 Turn off all the lights before leaving"
+                ],
+                correct: 1,
+                feedback: "Excellent! Turning off lights when not needed saves electricity and reduces carbon emissions. Even small actions make a big difference! ⚡"
+            },
+            {
+                scenario: "Your family is going to the grocery store that's only 3 blocks away. It's a nice day outside.",
+                question: "What would you suggest?",
+                choices: [
+                    "🚗 Take the car because it's faster and more comfortable",
+                    "🚶‍♀️ Walk or bike there since it's close and good weather"
+                ],
+                correct: 1,
+                feedback: "Amazing choice! Walking or biking short distances reduces air pollution and is great exercise too. Plus, you get to enjoy the fresh air! 🌬️"
+            },
+            {
+                scenario: "You're at a birthday party and they're giving out plastic water bottles. You brought your own reusable water bottle.",
+                question: "What would you do?",
+                choices: [
+                    "🥤 Take a plastic bottle anyway since everyone else is",
+                    "💚 Use your reusable bottle and maybe inspire others"
+                ],
+                correct: 1,
+                feedback: "Wonderful! Using reusable bottles prevents plastic waste and shows others how easy it is to be eco-friendly. You're leading by example! 🌟"
+            },
+            {
+                scenario: "You see a piece of trash on the playground that isn't yours. Other kids are walking past it.",
+                question: "What would you do?",
+                choices: [
+                    "🤷‍♀️ Leave it - it's not your mess to clean up",
+                    "🧹 Pick it up and throw it in the nearest trash bin"
+                ],
+                correct: 1,
+                feedback: "You're a true Earth hero! Taking care of our shared spaces keeps them beautiful for everyone. Your actions inspire others to care too! 🌍"
+            },
+            {
+                scenario: "Your teacher asks the class to do a project. You can choose between printing everything on paper or creating a digital presentation.",
+                question: "What would you choose?",
+                choices: [
+                    "📄 Print everything on paper - it's easier to read",
+                    "💻 Create a digital presentation to save paper"
+                ],
+                correct: 1,
+                feedback: "Smart thinking! Digital presentations save trees and paper. Plus, you can add cool animations and colors that help save our forests! 🌳"
+            },
+            {
+                scenario: "You're packing lunch and can choose between a disposable plastic bag or a reusable lunch container for your sandwich.",
+                question: "What would you choose?",
+                choices: [
+                    "🥪 Use a plastic bag - it's what everyone else uses",
+                    "📦 Use a reusable container that you can wash and use again"
+                ],
+                correct: 1,
+                feedback: "Fantastic choice! Reusable containers keep food fresh longer and prevent plastic waste. You're protecting ocean animals from plastic pollution! 🐢"
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let answered = false;
+
+        function loadQuestion() {
+            const q = questions[currentQuestion];
+            document.getElementById('q-num').textContent = currentQuestion + 1;
+            document.getElementById('current-q').textContent = currentQuestion + 1;
+            document.getElementById('scenario-text').textContent = q.scenario;
+            document.getElementById('question-text').textContent = q.question;
+            
+            const choicesContainer = document.getElementById('choices-container');
+            choicesContainer.innerHTML = '';
+            
+            q.choices.forEach((choice, index) => {
+                const button = document.createElement('button');
+                button.className = 'choice-btn';
+                button.textContent = choice;
+                button.onclick = () => selectAnswer(index);
+                choicesContainer.appendChild(button);
+            });
+            
+            document.getElementById('feedback').classList.remove('show');
+            document.getElementById('next-btn').classList.remove('show');
+            answered = false;
+        }
+
+        function selectAnswer(selectedIndex) {
+            if (answered) return;
+            
+            answered = true;
+            const q = questions[currentQuestion];
+            const buttons = document.querySelectorAll('.choice-btn');
+            
+            buttons.forEach((btn, index) => {
+                if (index === q.correct) {
+                    btn.classList.add('correct');
+                } else if (index === selectedIndex && index !== q.correct) {
+                    btn.classList.add('incorrect');
+                }
+                btn.style.pointerEvents = 'none';
+            });
+            
+            if (selectedIndex === q.correct) {
+                score++;
+                document.getElementById('score').textContent = score;
+            }
+            
+            document.getElementById('feedback').innerHTML = `<strong>${selectedIndex === q.correct ? 'Great choice!' : 'Good try!'}</strong> ${q.feedback}`;
+            document.getElementById('feedback').classList.add('show');
+            document.getElementById('next-btn').classList.add('show');
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            
+            if (currentQuestion >= questions.length) {
+                showFinalScore();
+            } else {
+                loadQuestion();
+            }
+        }
+
+        function showFinalScore() {
+            document.getElementById('quiz-container').style.display = 'none';
+            document.getElementById('final-score').classList.add('show');
+            document.getElementById('final-score-text').textContent = score;
+            
+            let badge, message;
+            if (score === 8) {
+                badge = '🏆';
+                message = "Perfect! You're a true Eco Champion! 🌟";
+            } else if (score >= 6) {
+                badge = '🌟';
+                message = "Excellent! You're an amazing Eco Hero! 🌍";
+            } else if (score >= 4) {
+                badge = '🌱';
+                message = "Great job! You're growing into an Eco Warrior! 💚";
+            } else {
+                badge = '🌿';
+                message = "Good start! Keep learning to become an Eco Hero! 🌱";
+            }
+            
+            document.getElementById('badge').textContent = badge;
+            document.getElementById('final-message').textContent = message;
+        }
+
+        function restartQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            answered = false;
+            
+            document.getElementById('score').textContent = '0';
+            document.getElementById('quiz-container').style.display = 'block';
+            document.getElementById('final-score').classList.remove('show');
+            
+            loadQuestion();
+        }
+
+        // Initialize the game
+        loadQuestion();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9869b64e0097a9e2',t:'MTc1OTEzMDM2NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
